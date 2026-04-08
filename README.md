@@ -4,6 +4,7 @@ emoji: 🎓
 colorFrom: indigo
 colorTo: violet
 sdk: docker
+app_port: 7860
 pinned: false
 ---
 
