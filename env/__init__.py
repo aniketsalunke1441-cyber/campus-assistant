@@ -8,9 +8,8 @@ from .models import (
     CampusState,
     CampusAction,
     ActionType,
-    DifficultyLevel,
-    TaskDefinition,
-    StepResult,
+    ResetResponse,
+    StepResponse,
 )
 
 __all__ = [
@@ -18,9 +17,8 @@ __all__ = [
     "CampusState",
     "CampusAction",
     "ActionType",
-    "DifficultyLevel",
-    "TaskDefinition",
-    "StepResult",
+    "ResetResponse",
+    "StepResponse",
 ]
 
 __version__ = "1.0.0"
