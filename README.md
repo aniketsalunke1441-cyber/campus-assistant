@@ -1,3 +1,12 @@
+---
+title: Campus AI Assistant
+emoji: 🎓
+colorFrom: indigo
+colorTo: violet
+sdk: docker
+pinned: false
+---
+
 # Autonomous AI Campus Assistant — OpenEnv Environment
 
 <div align="center">
