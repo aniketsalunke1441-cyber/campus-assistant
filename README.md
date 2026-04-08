@@ -1,8 +1,8 @@
 ---
-title: Campus AI Assistant
+title: Campus Assistant
 emoji: 🎓
-colorFrom: indigo
-colorTo: violet
+colorFrom: blue
+colorTo: indigo
 sdk: docker
 app_port: 7860
 pinned: false
