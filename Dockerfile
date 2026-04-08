@@ -1,13 +1,13 @@
 # ──────────────────────────────────────────────────────────────────
-# Dockerfile — CampusAssistantEnv
-# Runs Streamlit UI on port 7860 (HuggingFace Spaces compatible)
+# Dockerfile — OpenEnv API Server
+# Runs FastAPI + Uvicorn on port 8000 (OpenEnv compliant)
 # ──────────────────────────────────────────────────────────────────
 
 FROM python:3.11-slim
 
 # Metadata
-LABEL maintainer="Hackathon Team"
-LABEL description="Autonomous AI Campus Assistant — OpenEnv Environment"
+LABEL maintainer="Campus AI Hub"
+LABEL description="Autonomous AI Campus Assistant — OpenEnv API Server"
 LABEL version="1.0.0"
 
 # System dependencies
@@ -23,36 +23,28 @@ WORKDIR /app
 # Copy requirements first (layer caching)
 COPY requirements.txt .
 
-# Install Python dependencies
+# Install dependencies (fastapi and uvicorn are already in requirements)
 RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY . .
 
-# Create a non-root user for security (HuggingFace Spaces requirement)
+# Create a non-root user (HuggingFace requirement)
 RUN useradd -m -u 1000 appuser \
     && chown -R appuser:appuser /app
 USER appuser
 
-# Streamlit config — HuggingFace Spaces requires port 7860
-ENV STREAMLIT_SERVER_PORT=7860
-ENV STREAMLIT_SERVER_ADDRESS=0.0.0.0
-ENV STREAMLIT_SERVER_HEADLESS=true
-ENV STREAMLIT_BROWSER_GATHER_USAGE_STATS=false
-ENV STREAMLIT_THEME_BASE=dark
+# Environment variables
 ENV PYTHONUNBUFFERED=1
+ENV PORT=8000
 
-# Expose port
-EXPOSE 7860
+# Expose port 8000
+EXPOSE 8000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-    CMD curl -f http://localhost:7860/_stcore/health || exit 1
+    CMD curl -f http://localhost:8000/health || exit 1
 
-# Entry point
-CMD ["streamlit", "run", "app.py", \
-     "--server.port=7860", \
-     "--server.address=0.0.0.0", \
-     "--server.headless=true", \
-     "--browser.gatherUsageStats=false"]
+# Start the uvicorn server on port 8000
+CMD ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8000"]
