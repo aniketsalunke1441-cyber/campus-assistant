@@ -6,7 +6,7 @@
 FROM python:3.11-slim
 
 # Metadata
-LABEL maintainer="Campus AI Hub"
+LABEL maintainer="Aniket Salunke <aniketsalunke1441@gmail.com>"
 LABEL description="Autonomous AI Campus Assistant — OpenEnv API Server"
 LABEL version="1.0.0"
 
