@@ -150,16 +150,45 @@ def _llm_policy(
     )
 
     try:
-        response = client.chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": user_msg},
-            ],
-            temperature=0.0,
-            max_tokens=150,
-        )
-        raw = response.choices[0].message.content.strip()
+        if os.getenv("API_BASE_URL"):
+            # Use litellm if proxy is provided (often more robust for custom proxies)
+            try:
+                import litellm
+                response = litellm.completion(
+                    model=model,
+                    messages=[
+                        {"role": "system", "content": SYSTEM_PROMPT},
+                        {"role": "user", "content": user_msg},
+                    ],
+                    temperature=0.0,
+                    api_base=os.getenv("API_BASE_URL"),
+                    api_key=os.getenv("API_KEY") or os.getenv("OPENAI_API_KEY")
+                )
+                raw = response.choices[0].message.content.strip()
+            except ImportError:
+                # Fallback to standard openai client
+                response = client.chat.completions.create(
+                    model=model,
+                    messages=[
+                        {"role": "system", "content": SYSTEM_PROMPT},
+                        {"role": "user", "content": user_msg},
+                    ],
+                    temperature=0.0,
+                    max_tokens=150,
+                )
+                raw = response.choices[0].message.content.strip()
+        else:
+            # Standard openai call
+            response = client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": user_msg},
+                ],
+                temperature=0.0,
+                max_tokens=150,
+            )
+            raw = response.choices[0].message.content.strip()
         # Strip markdown code fences if present
         if raw.startswith("```"):
             raw = raw.split("```")[1]
