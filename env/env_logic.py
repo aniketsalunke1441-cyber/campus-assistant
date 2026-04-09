@@ -150,7 +150,11 @@ class CampusAssistantEnv:
         self._state.completed_steps = [s.value for s in self._state._completed_list]
         self._state.tasks_remaining = [s.value for s in required if s not in self._state._completed_list]
         self._state.last_message = msg
-        self._state.current_reward = min(1.0, self._state.current_reward + reward)
+        
+        # Ensure reward is strictly between 0.0 and 1.0 for Task Validation
+        # Capping at 0.95 and starting at a tiny base of 0.05
+        new_score = self._state.current_reward + reward
+        self._state.current_reward = min(0.95, max(0.05, new_score))
 
         return (self._state, reward, self._state.done, {})
 

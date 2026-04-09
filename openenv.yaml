@@ -9,6 +9,17 @@ difficulty: easy|medium|hard
 max_steps: 20
 reward_range: [0.0, 1.0]
 
+tasks:
+  - id: campus_easy
+    difficulty: easy
+    grader: true
+  - id: campus_medium
+    difficulty: medium
+    grader: true
+  - id: campus_hard
+    difficulty: hard
+    grader: true
+
 api:
   type: rest_api
   port: 8000
