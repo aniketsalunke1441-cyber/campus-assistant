@@ -17,33 +17,41 @@ def run_agent(server_url: str = "http://localhost:8000", difficulty: str = "easy
     OpenEnv Baseline Inference Script.
     Communicates via REST API with the Campus Assistant environment.
     """
-    print(f"\n--- OpenEnv Baseline Agent | Running {difficulty} task ---")
+    print(f"\n--- OpenEnv Baseline Agent | Running {difficulty} task ---", flush=True)
     
+    # 1. [START] block
+    print(f"[START] task={difficulty}", flush=True)
+
     # Reset environment
-    print(f"POST {server_url}/reset...")
-    resp = requests.post(f"{server_url}/reset", json={"difficulty": difficulty})
-    if resp.status_code != 200:
-        print(f"Error reset: {resp.text}")
+    print(f"POST {server_url}/reset...", flush=True)
+    try:
+        resp = requests.post(f"{server_url}/reset", json={"difficulty": difficulty})
+        resp.raise_for_status()
+    except Exception as e:
+        print(f"Error reset: {e}", flush=True)
         return
         
     data = resp.json()
     state = data["state"]
-    print(f"Initial State | Goal: {state['goal']}")
+    print(f"Initial State | Goal: {state['goal']}", flush=True)
     
     # Solution path (Perfect Rule-Based Agent)
     actions = TASK_SOLUTIONS.get(difficulty, [])
     
     total_reward = 0.0
+    completed_steps = 0
+
     for idx, act_name in enumerate(actions, 1):
         # Step action
-        print(f"Step {idx:02} | Executing: {act_name}")
-        resp = requests.post(f"{server_url}/step", json={
-            "action": act_name,
-            "parameters": {"topic": "dbms"} if "notes" in act_name else {}
-        })
-        
-        if resp.status_code != 200:
-            print(f"Error step: {resp.text}")
+        print(f"Step {idx:02} | Executing: {act_name}", flush=True)
+        try:
+            resp = requests.post(f"{server_url}/step", json={
+                "action": act_name,
+                "parameters": {"topic": "dbms"} if "notes" in act_name else {}
+            })
+            resp.raise_for_status()
+        except Exception as e:
+            print(f"Error step: {e}", flush=True)
             break
             
         step_data = resp.json()
@@ -51,19 +59,25 @@ def run_agent(server_url: str = "http://localhost:8000", difficulty: str = "easy
         total_reward += reward
         state = step_data["state"]
         done = step_data["done"]
+        completed_steps = state['completed_steps']
         
-        print(f"        | Reward: {reward:.2f} | Cumulative: {state['current_reward']:.4f}")
+        # 2. [STEP] block
+        print(f"[STEP] step={idx} reward={reward:.4f}", flush=True)
+        print(f"        | Reward: {reward:.2f} | Cumulative: {state['current_reward']:.4f}", flush=True)
         
         if done:
             break
             
-    print(f"\nTask Finished | Final Reward Sum: {total_reward:.4f} | State Reward: {state['current_reward']:.4f}")
-    print(f"Steps: {state['completed_steps']} / {state['completed_steps'] + state['tasks_remaining']}")
+    # 3. [END] block
+    print(f"[END] task={difficulty} score={state['current_reward']:.4f} steps={completed_steps}", flush=True)
+
+    print(f"\nTask Finished | Final Reward Sum: {total_reward:.4f} | State Reward: {state['current_reward']:.4f}", flush=True)
+    print(f"Steps: {completed_steps} / {completed_steps + state['tasks_remaining']}", flush=True)
     
     if state["current_reward"] >= 0.85:
-        print("✅ SUCCESS: PERFECT SUBMISSION SCORE")
+        print("✅ SUCCESS: PERFECT SUBMISSION SCORE", flush=True)
     else:
-        print("⚠️ PARTIAL SCORE: TRY AGAIN")
+        print("⚠️ PARTIAL SCORE: TRY AGAIN", flush=True)
 
 if __name__ == "__main__":
     import argparse
