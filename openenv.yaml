@@ -8,16 +8,16 @@ reward_range: [0.0, 1.0]
 tasks:
   - id: campus_easy
     description: "Complete a simple study session on DBMS"
-    grader: true
     difficulty: easy
+    grader: grader.grade_easy
   - id: campus_medium
     description: "Prepare for an exam with a study plan and quiz"
-    grader: true
     difficulty: medium
+    grader: grader.grade_medium
   - id: campus_hard
     description: "Full exam preparation with checklist and reminders"
-    grader: true
     difficulty: hard
+    grader: grader.grade_hard
 
 api:
   type: rest_api
