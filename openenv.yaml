@@ -1,9 +1,5 @@
-# ──────────────────────────────────────────────────────────────────
-# CampusAssistantEnv — OpenEnv Metadata Specification
-# ──────────────────────────────────────────────────────────────────
-
+version: "1.0"
 name: CampusAssistantEnv
-version: 1.0.0
 description: Autonomous AI Assistant for University Tasks (notes, plans, quizzes, reminders)
 difficulty: easy|medium|hard
 max_steps: 20
@@ -11,14 +7,17 @@ reward_range: [0.0, 1.0]
 
 tasks:
   - id: campus_easy
+    description: "Complete a simple study session on DBMS"
+    grader: true
     difficulty: easy
-    grader: true
   - id: campus_medium
+    description: "Prepare for an exam with a study plan and quiz"
+    grader: true
     difficulty: medium
-    grader: true
   - id: campus_hard
-    difficulty: hard
+    description: "Full exam preparation with checklist and reminders"
     grader: true
+    difficulty: hard
 
 api:
   type: rest_api
@@ -31,10 +30,11 @@ api:
     health: GET /health
 
 state_schema:
-  goal: string
-  tasks_remaining: integer
-  completed_steps: integer
-  difficulty: string
+  task_name: string
+  user_goal: string
+  tasks_remaining: string[]
+  completed_steps: string[]
+  difficulty_level: string
   last_message: string
   current_reward: float
   done: boolean
