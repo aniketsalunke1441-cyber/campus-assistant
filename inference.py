@@ -45,7 +45,7 @@ def run_agent(server_url: str = "http://localhost:8000", difficulty: str = "easy
         
         try:
             resp = requests.post(f"{server_url}/step", json={
-                "action": action.action_type.value,
+                "action": action.action.value,
                 "parameters": action.parameters
             }, timeout=15)
             resp.raise_for_status()

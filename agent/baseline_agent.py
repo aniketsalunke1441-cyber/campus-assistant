@@ -122,9 +122,9 @@ def _rule_based_policy(state_dict: Dict[str, Any]) -> CampusAction:
                 params = {"topic": "DBMS & SQL", "num_questions": 5}
             elif action == ActionType.CREATE_CHECKLIST:
                 params = {"topic": "DBMS"}
-            return CampusAction(action_type=action, parameters=params)
+            return CampusAction(action=action, parameters=params)
 
-    return CampusAction(action_type=ActionType.FINISH_TASK)
+    return CampusAction(action=ActionType.FINISH_TASK)
 
 
 # ---------------------------------------------------------------------------
@@ -198,7 +198,7 @@ def _llm_policy(
         action_str = data.get("action", "finish_task")
         params = data.get("parameters", {})
         return CampusAction(
-            action_type=ActionType(action_str),
+            action=ActionType(action_str),
             parameters=params,
         )
     except Exception as exc:
