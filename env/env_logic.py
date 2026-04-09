@@ -1,8 +1,9 @@
 import random
 from typing import List, Dict, Any, Union
 from .models import ActionType, CampusAction, CampusState
+from tasks import grade_summarize_notes, grade_prepare_viva, grade_complete_study_workflow
 
-# ── Knowledge Base (Predefined notes) ────────────────────────────────────────
+# ── Knowledge Base ────────────────────────────────────────────────────────────
 
 NOTES_DB = {
     "dbms": [
@@ -37,30 +38,34 @@ NOTES_DB = {
     ]
 }
 
-# ── Env Configuration ────────────────────────────────────────────────────────
+# ── Task Configuration ────────────────────────────────────────────────────────
 
 TASK_CONFIGS = {
     "easy": {
+        "id": "summarize_notes",
         "name": "Quick Review",
-        "description": "Just search notes and summarize them.",
-        "goal": "Search DBMS notes and generate a quick summary for class.",
-        "steps": [ActionType.SEARCH_NOTES, ActionType.SUMMARIZE_NOTES, ActionType.FINISH_TASK]
+        "goal": "Summarize notes: search DBMS notes and generate a quick summary.",
+        "steps": [ActionType.SEARCH_NOTES, ActionType.SUMMARIZE_NOTES, ActionType.FINISH_TASK],
+        "grader": grade_summarize_notes,
     },
     "medium": {
-        "name": "Exam Prep",
-        "description": "Study plan and reminders for SQL exam.",
-        "goal": "Prepare for SQL viva: search, summarize, plan tasks, and set a reminder.",
-        "steps": [ActionType.SEARCH_NOTES, ActionType.SUMMARIZE_NOTES, ActionType.CREATE_STUDY_PLAN, ActionType.GENERATE_REMINDER, ActionType.FINISH_TASK]
+        "id": "prepare_viva",
+        "name": "Prepare Viva",
+        "goal": "Prepare for viva: search notes, create a study plan, and generate a quiz.",
+        "steps": [ActionType.SEARCH_NOTES, ActionType.CREATE_STUDY_PLAN, ActionType.CREATE_QUIZ, ActionType.FINISH_TASK],
+        "grader": grade_prepare_viva,
     },
     "hard": {
+        "id": "complete_study_workflow",
         "name": "Full Sprint",
-        "description": "Comprehensive study package.",
-        "goal": "Complete 2-hour sprint: full notes package with quiz, plan, reminder and checklist.",
-        "steps": [ActionType.SEARCH_NOTES, ActionType.SUMMARIZE_NOTES, ActionType.CREATE_STUDY_PLAN, ActionType.CREATE_QUIZ, ActionType.GENERATE_REMINDER, ActionType.CREATE_CHECKLIST, ActionType.FINISH_TASK]
+        "goal": "Complete the full study workflow: plan, quiz, checklist, and reminder.",
+        "steps": [ActionType.SEARCH_NOTES, ActionType.CREATE_STUDY_PLAN, ActionType.CREATE_QUIZ,
+                  ActionType.GENERATE_REMINDER, ActionType.CREATE_CHECKLIST, ActionType.FINISH_TASK],
+        "grader": grade_complete_study_workflow,
     }
 }
 
-# ── Environment Logic ──────────────────────────────────────────────────────────
+# ── Environment Logic ─────────────────────────────────────────────────────────
 
 class CampusAssistantEnv:
     def __init__(self, seed: int = 42):
@@ -68,15 +73,17 @@ class CampusAssistantEnv:
         self._state: CampusState = None
         self._action_history: List[ActionType] = []
         self._generated_content: Dict[str, str] = {}
+        self._grader = None
 
     def reset(self, difficulty: str = "easy") -> CampusState:
         if difficulty not in TASK_CONFIGS:
             difficulty = "easy"
-            
+
         conf = TASK_CONFIGS[difficulty]
         self._action_history = []
         self._generated_content = {}
-        
+        self._grader = conf["grader"]
+
         self._state = CampusState(
             user_goal=conf["goal"],
             task_name=conf["name"],
@@ -84,7 +91,7 @@ class CampusAssistantEnv:
             completed_steps=[],
             tools_used=[],
             difficulty_level=difficulty,
-            time_remaining=max(0, 360 if difficulty == "hard" else 240 if difficulty == "medium" else 120),
+            time_remaining=360 if difficulty == "hard" else 240 if difficulty == "medium" else 120,
             last_message=f"Environment reset. Task: {conf['name']} ({difficulty}).",
             current_reward=0.0,
             done=False,
@@ -92,7 +99,7 @@ class CampusAssistantEnv:
         )
         self._state._required_steps = conf["steps"]
         self._state._completed_list = []
-        
+
         return self._state
 
     def step(self, action_request: Union[str, Dict, CampusAction]) -> tuple:
@@ -104,7 +111,6 @@ class CampusAssistantEnv:
             act_type = ActionType(action_request)
             params = {}
         elif isinstance(action_request, dict):
-            # Check if it has 'action' or 'action_type'
             act_val = action_request.get("action") or action_request.get("action_type")
             act_type = ActionType(act_val)
             params = action_request.get("parameters", {})
@@ -116,47 +122,56 @@ class CampusAssistantEnv:
         self._action_history.append(act_type)
         if act_type.value not in self._state.tools_used:
             self._state.tools_used.append(act_type.value)
-        
-        # Reward logic
-        reward = 0.0
+
         msg = f"Action {act_type.value} executed."
-        
         required = self._state._required_steps
-        
-        # Check if action was required and not yet completed
+
+        # Track completed steps
         if act_type in required and act_type not in self._state._completed_list:
             self._state._completed_list.append(act_type)
-            reward += 0.15 # Small reward for a correct step
-            msg = f"✅ Progress! {act_type.value} completed."
-            
-            # Update content simulation
+            msg = f"✅ Step completed: {act_type.value}."
+
+            # Generate content
             if act_type == ActionType.SEARCH_NOTES:
                 topic = params.get("topic", "general").lower()
-                self._state.generated_content["raw_notes"] = "\n".join(NOTES_DB.get(topic, NOTES_DB["general"]))
+                self._state.generated_content["raw_notes"] = "\n".join(
+                    NOTES_DB.get(topic, NOTES_DB["general"])
+                )
             elif act_type == ActionType.SUMMARIZE_NOTES:
-                self._state.generated_content["summary"] = "A concise summary of the retrieved college notes."
-        
-        # Finish check
+                self._state.generated_content["summary"] = "Concise DBMS/SQL summary for exam prep."
+            elif act_type == ActionType.CREATE_STUDY_PLAN:
+                self._state.generated_content["study_plan"] = "2-hour DBMS study plan created."
+            elif act_type == ActionType.CREATE_QUIZ:
+                self._state.generated_content["quiz"] = "5 DBMS/SQL practice questions generated."
+            elif act_type == ActionType.GENERATE_REMINDER:
+                self._state.generated_content["reminder"] = "Reminder set for exam preparation."
+            elif act_type == ActionType.CREATE_CHECKLIST:
+                self._state.generated_content["checklist"] = "Exam preparation checklist created."
+
+        # Handle finish
         if act_type == ActionType.FINISH_TASK:
             self._state.done = True
-            # Bonus reward if everything is done
-            if len(self._state._completed_list) == len(required):
-                reward += 0.5
-                msg = "🎉 ALL STEPS COMPLETED! Excellent job."
-            else:
-                msg = "⚠️ Task finished early. Missing steps."
+            msg = "🎉 Task finished."
 
-        # Update counters
+        # Update state lists
         self._state.completed_steps = [s.value for s in self._state._completed_list]
-        self._state.tasks_remaining = [s.value for s in required if s not in self._state._completed_list]
+        self._state.tasks_remaining = [
+            s.value for s in required if s not in self._state._completed_list
+        ]
         self._state.last_message = msg
-        
-        # Ensure reward is strictly between 0.0 and 1.0 for Task Validation
-        # Capping at 0.95 and starting at a tiny base of 0.05
-        new_score = self._state.current_reward + reward
-        self._state.current_reward = min(0.95, max(0.05, new_score))
+
+        # Binary reward: run grader only when done, else 0.0
+        if self._state.done and self._grader:
+            state_dict = self._state.dict()
+            reward = self._grader(state_dict)  # returns 1.0 or 0.0
+        else:
+            reward = 0.0
+
+        self._state.current_reward = reward
 
         return (self._state, reward, self._state.done, {})
 
     def state(self) -> CampusState:
+        if self._state is None:
+            raise Exception("Environment not initialized. Call reset() first.")
         return self._state
