@@ -196,16 +196,17 @@ class BaselineAgent:
 
     def __init__(
         self,
-        model: str = "gpt-3.5-turbo",
+        model: Optional[str] = None,
         use_llm: Optional[bool] = None,
         verbose: bool = True,
         seed: int = 42,
     ) -> None:
-        self.model = model
+        # Use provided model or fall back to MODEL_NAME env var, then default
+        self.model = model or os.getenv("MODEL_NAME") or "gpt-3.5-turbo"
         self.verbose = verbose
         self.seed = seed
 
-        api_key = os.getenv("OPENAI_API_KEY", "")
+        api_key = os.getenv("API_KEY") or os.getenv("OPENAI_API_KEY")
         self._use_llm = (
             use_llm if use_llm is not None else bool(_OPENAI_AVAILABLE and api_key)
         )
@@ -217,6 +218,8 @@ class BaselineAgent:
             api_key = os.getenv("API_KEY") or os.getenv("OPENAI_API_KEY")
             
             if api_key:
+                if self.verbose:
+                    print(f"[BaselineAgent] Initializing client | Base: {base_url} | Model: {self.model}")
                 self._client = openai.OpenAI(
                     api_key=api_key,
                     base_url=base_url
