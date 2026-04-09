@@ -67,11 +67,9 @@ def run_agent(server_url: str = "http://localhost:8000", difficulty: str = "easy
 
 if __name__ == "__main__":
     import argparse
-    parser = argparse.ArgumentParser()
-    parser.add_stdio("URL", default="http://localhost:8000", help="API URL (e.g. http://localhost:8000)")
-    parser.add_argument("--url", default="http://localhost:8000", help="API URL")
+    parser = argparse.ArgumentParser(description="OpenEnv Baseline Inference Script")
+    parser.add_argument("--url", "--URL", default="http://localhost:8000", help="API URL (e.g. http://localhost:8000)")
     parser.add_argument("--task", default="hard", help="Task difficulty (easy, medium, hard)")
     args = parser.parse_args()
     
-    # Change current working directory to the API URL if needed
     run_agent(args.url, args.task)
