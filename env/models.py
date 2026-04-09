@@ -20,15 +20,17 @@ class CampusAction(BaseModel):
 # ── State ────────────────────────────────────────────────────────────────────
 
 class CampusState(BaseModel):
-    goal: str
-    tasks_remaining: int
-    completed_steps: int
-    difficulty: str
-    
-    # Extra fields for logic tracking (can be hidden in final response if needed)
-    last_message: str = ""
+    user_goal: str
+    task_name: str
+    tasks_remaining: List[str]
+    completed_steps: List[str]
+    tools_used: List[str]
+    difficulty_level: str
+    time_remaining: int
     current_reward: float = 0.0
     done: bool = False
+    last_message: str = ""
+    generated_content: Dict[str, str] = Field(default_factory=dict)
     
     # Internal tracking
     _required_steps: List[ActionType] = []

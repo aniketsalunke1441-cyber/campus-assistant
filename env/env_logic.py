@@ -78,13 +78,17 @@ class CampusAssistantEnv:
         self._generated_content = {}
         
         self._state = CampusState(
-            goal=conf["goal"],
-            tasks_remaining=len(conf["steps"]),
-            completed_steps=0,
-            difficulty=difficulty,
+            user_goal=conf["goal"],
+            task_name=conf["name"],
+            tasks_remaining=[s.value for s in conf["steps"]],
+            completed_steps=[],
+            tools_used=[],
+            difficulty_level=difficulty,
+            time_remaining=max(0, 360 if difficulty == "hard" else 240 if difficulty == "medium" else 120),
             last_message=f"Environment reset. Task: {conf['name']} ({difficulty}).",
             current_reward=0.0,
-            done=False
+            done=False,
+            generated_content={}
         )
         self._state._required_steps = conf["steps"]
         self._state._completed_list = []
@@ -100,7 +104,9 @@ class CampusAssistantEnv:
             act_type = ActionType(action_request)
             params = {}
         elif isinstance(action_request, dict):
-            act_type = ActionType(action_request["action"])
+            # Check if it has 'action' or 'action_type'
+            act_val = action_request.get("action") or action_request.get("action_type")
+            act_type = ActionType(act_val)
             params = action_request.get("parameters", {})
         else:
             act_type = action_request.action
@@ -108,6 +114,8 @@ class CampusAssistantEnv:
 
         # Record action
         self._action_history.append(act_type)
+        if act_type.value not in self._state.tools_used:
+            self._state.tools_used.append(act_type.value)
         
         # Reward logic
         reward = 0.0
@@ -120,6 +128,13 @@ class CampusAssistantEnv:
             self._state._completed_list.append(act_type)
             reward += 0.15 # Small reward for a correct step
             msg = f"✅ Progress! {act_type.value} completed."
+            
+            # Update content simulation
+            if act_type == ActionType.SEARCH_NOTES:
+                topic = params.get("topic", "general").lower()
+                self._state.generated_content["raw_notes"] = "\n".join(NOTES_DB.get(topic, NOTES_DB["general"]))
+            elif act_type == ActionType.SUMMARIZE_NOTES:
+                self._state.generated_content["summary"] = "A concise summary of the retrieved college notes."
         
         # Finish check
         if act_type == ActionType.FINISH_TASK:
@@ -132,8 +147,8 @@ class CampusAssistantEnv:
                 msg = "⚠️ Task finished early. Missing steps."
 
         # Update counters
-        self._state.completed_steps = len(self._state._completed_list)
-        self._state.tasks_remaining = max(0, len(required) - self._state.completed_steps)
+        self._state.completed_steps = [s.value for s in self._state._completed_list]
+        self._state.tasks_remaining = [s.value for s in required if s not in self._state._completed_list]
         self._state.last_message = msg
         self._state.current_reward = min(1.0, self._state.current_reward + reward)
 

@@ -56,7 +56,7 @@ def run_agent(server_url: str = "http://localhost:8000", difficulty: str = "easy
         reward = step_data["reward"]
         state_dict = step_data["state"]
         done = step_data["done"]
-        completed_steps = state_dict['completed_steps']
+        completed_steps = len(state_dict['completed_steps'])
         
         # 2. [STEP] block
         print(f"[STEP] step={idx} reward={reward:.2f}", flush=True)

@@ -270,7 +270,7 @@ class BaselineAgent:
         step_count = 0
 
         while step_count < max_steps:
-            state_dict = env.state()
+            state_dict = env.state().dict()
             action = self.select_action(state_dict)
 
             if self.verbose:
@@ -304,7 +304,8 @@ class BaselineAgent:
             if done:
                 break
 
-        final_reward = env.state()["current_reward"]
+        final_state = env.state()
+        final_reward = final_state.current_reward
 
         if self.verbose:
             print(f"\n{'='*60}")
