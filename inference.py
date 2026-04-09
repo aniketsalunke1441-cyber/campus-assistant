@@ -41,7 +41,13 @@ def run_agent(server_url: str = "http://localhost:8000", difficulty: str = "easy
 
     for idx in range(1, max_steps + 1):
         # Let agent decide based on state_dict
-        action = agent.select_action(state_dict)
+        try:
+            action = agent.select_action(state_dict)
+        except Exception as e:
+            print(f"ERROR: Agent select_action failed: {e}", flush=True)
+            print(f"STATE: {state_dict}", flush=True)
+            # Re-raise to ensure it fails visibly
+            raise e
         
         try:
             resp = requests.post(f"{server_url}/step", json={

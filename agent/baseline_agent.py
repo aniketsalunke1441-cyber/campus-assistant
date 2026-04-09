@@ -295,7 +295,7 @@ class BaselineAgent:
             print(f"\n{'='*60}")
             print(f"[Episode] Task : {init_state.task_name}")
             print(f"[Episode] Goal : {init_state.user_goal[:80]}...")
-            print(f"[Episode] Diff : {init_state.difficulty_level.value.upper()}")
+            print(f"[Episode] Diff : {init_state.difficulty_level.upper()}")
             print(f"{'='*60}\n")
 
         transcript: List[Dict[str, Any]] = []
@@ -308,7 +308,7 @@ class BaselineAgent:
             if self.verbose:
                 print(
                     f"  Step {step_count + 1:02d} | "
-                    f"Action: {action.action_type.value:<22} | "
+                    f"Action: {action.action.value:<22} | "
                     f"Params: {action.parameters}"
                 )
 
@@ -317,7 +317,7 @@ class BaselineAgent:
             transcript.append(
                 {
                     "step": step_count + 1,
-                    "action": action.action_type.value,
+                    "action": action.action.value,
                     "parameters": action.parameters,
                     "step_reward": round(reward, 4),
                     "total_reward": round(result_obs.current_reward, 4),
