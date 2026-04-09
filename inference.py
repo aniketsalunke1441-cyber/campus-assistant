@@ -4,51 +4,59 @@ import time
 import sys
 from typing import List, Dict, Any
 
-# Environment logic for task order (Rule-Based Agent)
-TASK_SOLUTIONS = {
-    "easy": ["search_notes", "summarize_notes", "finish_task"],
-    "medium": ["search_notes", "summarize_notes", "create_study_plan", "generate_reminder", "finish_task"],
-    "hard": ["search_notes", "summarize_notes", "create_study_plan", "create_quiz", "generate_reminder", "create_checklist", "finish_task"]
-}
+from agent.baseline_agent import BaselineAgent
 
 def run_agent(server_url: str = "http://localhost:8000", difficulty: str = "easy"):
     # Clear wait
     time.sleep(1)
     
+    # Force use of BaselineAgent with LLM if possible
+    # Note: Environment logic inside BaselineAgent needs to be aware of the server_url
+    # or just use the direct env call if running on same process.
+    # However, the validator usually expects us to talk to the server.
+    
     # 1. [START] block
     print(f"[START] task={difficulty}", flush=True)
     sys.stdout.flush()
 
-    # Reset environment
+    # We'll use a modified version of the agent's run loop to communicate via REST
+    # following the exact requirements of the validator.
+    
+    # Connect
     try:
-        resp = requests.post(f"{server_url}/reset", json={"difficulty": difficulty}, timeout=10)
+        resp = requests.post(f"{server_url}/reset", json={"difficulty": difficulty}, timeout=15)
         resp.raise_for_status()
     except Exception:
         print(f"[END] task={difficulty} score=0.0 steps=0", flush=True)
-        sys.stdout.flush()
         return
         
     data = resp.json()
-    state = data["state"]
+    state_dict = data["state"]
     
-    actions = TASK_SOLUTIONS.get(difficulty, [])
+    # Initialize Agent (it will pick up API_KEY and API_BASE_URL from env)
+    agent = BaselineAgent(use_llm=True, verbose=False)
+    
     completed_steps = 0
+    max_steps = 20
 
-    for idx, act_name in enumerate(actions, 1):
+    for idx in range(1, max_steps + 1):
+        # Let agent decide based on state_dict
+        action = agent.select_action(state_dict)
+        
         try:
             resp = requests.post(f"{server_url}/step", json={
-                "action": act_name,
-                "parameters": {"topic": "dbms"} if "notes" in act_name else {}
-            }, timeout=10)
+                "action": action.action_type.value,
+                "parameters": action.parameters
+            }, timeout=15)
             resp.raise_for_status()
         except Exception:
             break
             
         step_data = resp.json()
         reward = step_data["reward"]
-        state = step_data["state"]
+        state_dict = step_data["state"]
         done = step_data["done"]
-        completed_steps = state['completed_steps']
+        completed_steps = state_dict['completed_steps']
         
         # 2. [STEP] block
         print(f"[STEP] step={idx} reward={reward:.2f}", flush=True)
@@ -58,7 +66,7 @@ def run_agent(server_url: str = "http://localhost:8000", difficulty: str = "easy
             break
             
     # 3. [END] block
-    print(f"[END] task={difficulty} score={state['current_reward']:.2f} steps={completed_steps}", flush=True)
+    print(f"[END] task={difficulty} score={state_dict['current_reward']:.2f} steps={completed_steps}", flush=True)
     sys.stdout.flush()
 
 if __name__ == "__main__":

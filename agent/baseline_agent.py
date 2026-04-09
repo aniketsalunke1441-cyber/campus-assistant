@@ -211,8 +211,16 @@ class BaselineAgent:
         )
 
         self._client = None
-        if self._use_llm and _OPENAI_AVAILABLE and api_key:
-            self._client = openai.OpenAI(api_key=api_key)
+        if self._use_llm and _OPENAI_AVAILABLE:
+            # Use platform-injected API_BASE_URL and API_KEY
+            base_url = os.getenv("API_BASE_URL")
+            api_key = os.getenv("API_KEY") or os.getenv("OPENAI_API_KEY")
+            
+            if api_key:
+                self._client = openai.OpenAI(
+                    api_key=api_key,
+                    base_url=base_url
+                )
 
         if self.verbose:
             mode = "LLM (GPT)" if self._use_llm else "Rule-Based (no API key)"
