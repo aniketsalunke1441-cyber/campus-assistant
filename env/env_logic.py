@@ -93,7 +93,7 @@ class CampusAssistantEnv:
             difficulty_level=difficulty,
             time_remaining=360 if difficulty == "hard" else 240 if difficulty == "medium" else 120,
             last_message=f"Environment reset. Task: {conf['name']} ({difficulty}).",
-            current_reward=0.0,
+            current_reward=0.01,  # Never 0.0
             done=False,
             generated_content={}
         )
@@ -160,13 +160,9 @@ class CampusAssistantEnv:
         ]
         self._state.last_message = msg
 
-        # Binary reward: run grader only when done, else 0.0
-        if self._state.done and self._grader:
-            state_dict = self._state.dict()
-            reward = self._grader(state_dict)  # returns 1.0 or 0.0
-        else:
-            reward = 0.0
-
+        # Run grader every step — always returns strictly (0.01, 0.99)
+        state_dict = self._state.dict()
+        reward = self._grader(state_dict)
         self._state.current_reward = reward
 
         return (self._state, reward, self._state.done, {})
