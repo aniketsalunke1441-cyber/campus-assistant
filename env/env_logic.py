@@ -1,7 +1,9 @@
+import json
+import os
 import random
 from typing import List, Dict, Any, Union
-from .models import ActionType, CampusAction, CampusState
-from tasks import grade_summarize_notes, grade_prepare_viva, grade_complete_study_workflow
+from .models import ActionType, CampusAction, CampusState, TaskInfo, StepResponse
+import tasks
 
 # ── Knowledge Base ────────────────────────────────────────────────────────────
 
@@ -40,30 +42,34 @@ NOTES_DB = {
 
 # ── Task Configuration ────────────────────────────────────────────────────────
 
-TASK_CONFIGS = {
-    "easy": {
-        "id": "summarize_notes",
-        "name": "Quick Review",
-        "goal": "Summarize notes: search DBMS notes and generate a quick summary.",
-        "steps": [ActionType.SEARCH_NOTES, ActionType.SUMMARIZE_NOTES, ActionType.FINISH_TASK],
-        "grader": grade_summarize_notes,
-    },
-    "medium": {
-        "id": "prepare_viva",
-        "name": "Prepare Viva",
-        "goal": "Prepare for viva: search notes, create a study plan, and generate a quiz.",
-        "steps": [ActionType.SEARCH_NOTES, ActionType.CREATE_STUDY_PLAN, ActionType.CREATE_QUIZ, ActionType.FINISH_TASK],
-        "grader": grade_prepare_viva,
-    },
-    "hard": {
-        "id": "complete_study_workflow",
-        "name": "Full Sprint",
-        "goal": "Complete the full study workflow: plan, quiz, checklist, and reminder.",
-        "steps": [ActionType.SEARCH_NOTES, ActionType.CREATE_STUDY_PLAN, ActionType.CREATE_QUIZ,
-                  ActionType.GENERATE_REMINDER, ActionType.CREATE_CHECKLIST, ActionType.FINISH_TASK],
-        "grader": grade_complete_study_workflow,
-    }
-}
+TASK_REGISTRY: Dict[str, TaskInfo] = {}
+TASK_GRADERS: Dict[str, Any] = {}
+
+def _load_tasks():
+    global TASK_REGISTRY, TASK_GRADERS
+    # Load from tasks/tasks.json relative to project root
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    json_path = os.path.join(base_dir, "tasks", "tasks.json")
+    
+    if os.path.exists(json_path):
+        with open(json_path, "r") as f:
+            data = json.load(f)
+            for item in data:
+                diff = item["difficulty"]
+                TASK_REGISTRY[diff] = TaskInfo(
+                    id=item["id"],
+                    name=item["name"],
+                    goal=item["goal"],
+                    description=item["description"],
+                    difficulty=diff,
+                    required_steps=[ActionType(s) for s in item["required_steps"]]
+                )
+                # Map grader string to actual function in tasks module
+                g_str = item["grader"]
+                func_name = g_str.split(".")[-1]
+                TASK_GRADERS[diff] = getattr(tasks, func_name)
+
+_load_tasks()
 
 # ── Environment Logic ─────────────────────────────────────────────────────────
 
@@ -75,29 +81,29 @@ class CampusAssistantEnv:
         self._generated_content: Dict[str, str] = {}
         self._grader = None
 
-    def reset(self, difficulty: str = "easy") -> CampusState:
-        if difficulty not in TASK_CONFIGS:
-            difficulty = "easy"
+    def reset(self, task_difficulty: str = "easy") -> CampusState:
+        if task_difficulty not in TASK_REGISTRY:
+            task_difficulty = "easy"
 
-        conf = TASK_CONFIGS[difficulty]
+        conf = TASK_REGISTRY[task_difficulty]
         self._action_history = []
         self._generated_content = {}
-        self._grader = conf["grader"]
+        self._grader = TASK_GRADERS[task_difficulty]
 
         self._state = CampusState(
-            user_goal=conf["goal"],
-            task_name=conf["name"],
-            tasks_remaining=[s.value for s in conf["steps"]],
+            user_goal=conf.goal,
+            task_name=conf.name,
+            tasks_remaining=[s.value for s in conf.required_steps],
             completed_steps=[],
             tools_used=[],
-            difficulty_level=difficulty,
-            time_remaining=360 if difficulty == "hard" else 240 if difficulty == "medium" else 120,
-            last_message=f"Environment reset. Task: {conf['name']} ({difficulty}).",
+            difficulty_level=task_difficulty,
+            time_remaining=360 if task_difficulty == "hard" else 240 if task_difficulty == "medium" else 120,
+            last_message=f"Environment reset. Task: {conf.name} ({task_difficulty}).",
             current_reward=0.01,  # Never 0.0
             done=False,
             generated_content={}
         )
-        self._state._required_steps = conf["steps"]
+        self._state._required_steps = conf.required_steps
         self._state._completed_list = []
 
         return self._state
@@ -160,12 +166,12 @@ class CampusAssistantEnv:
         ]
         self._state.last_message = msg
 
-        # Run grader every step — always returns strictly (0.01, 0.99)
-        state_dict = self._state.dict()
-        reward = self._grader(state_dict)
+        # Run grader every step
+        reward = self._grader(self._state.dict())
         self._state.current_reward = reward
 
-        return (self._state, reward, self._state.done, {})
+        # Requirement: step() returns (state, reward, done)
+        return self._state, reward, self._state.done
 
     def state(self) -> CampusState:
         if self._state is None:

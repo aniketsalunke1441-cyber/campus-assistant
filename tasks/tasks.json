@@ -1,0 +1,29 @@
+[
+  {
+    "id": "summarize_notes",
+    "name": "Quick Review",
+    "goal": "Summarize notes: search DBMS notes and generate a quick summary.",
+    "description": "Search DBMS notes and generate a summary.",
+    "difficulty": "easy",
+    "required_steps": ["search_notes", "summarize_notes", "finish_task"],
+    "grader": "tasks.grade_summarize_notes"
+  },
+  {
+    "id": "prepare_viva",
+    "name": "Prepare Viva",
+    "goal": "Prepare for viva: search notes, create a study plan, and generate a quiz.",
+    "description": "Prepare for a viva exam with a study plan and quiz.",
+    "difficulty": "medium",
+    "required_steps": ["search_notes", "create_study_plan", "create_quiz", "finish_task"],
+    "grader": "tasks.grade_prepare_viva"
+  },
+  {
+    "id": "complete_study_workflow",
+    "name": "Full Sprint",
+    "goal": "Complete the full study workflow: plan, quiz, checklist, and reminder.",
+    "description": "Complete the full study workflow with plan, quiz, checklist and reminder.",
+    "difficulty": "hard",
+    "required_steps": ["search_notes", "create_study_plan", "create_quiz", "generate_reminder", "create_checklist", "finish_task"],
+    "grader": "tasks.grade_complete_study_workflow"
+  }
+]

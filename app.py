@@ -254,8 +254,7 @@ with left:
         try:
             env = get_env()
             action = CampusAction(action_type=ActionType(sel), parameters=params)
-            result = env.step(action)
-            obs, rw, dn, _ = result.to_tuple()
+            obs, rw, dn = env.step(action)
             st.session_state.transcript.append({
                 "step":    len(st.session_state.transcript) + 1,
                 "action":  sel,
@@ -283,8 +282,7 @@ with left:
                     for _ in range(20):
                         s2  = e2.state()
                         act = _rule_based_policy(s2)
-                        res = e2.step(act)
-                        _, _, dn2, _ = res.to_tuple()
+                        _, _, dn2 = e2.step(act)
                         if dn2:
                             break
                     results[d] = e2.state()["current_reward"]

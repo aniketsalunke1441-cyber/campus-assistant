@@ -44,7 +44,7 @@ def get_state():
 
 @app.post("/reset", response_model=ResetResponse)
 def reset(request: ResetRequest = Body(default=ResetRequest())):
-    new_state = env.reset(difficulty=request.difficulty)
+    new_state = env.reset(task_difficulty=request.difficulty)
     return ResetResponse(state=new_state, done=False)
 
 @app.post("/step", response_model=StepResponse)
@@ -53,8 +53,9 @@ def step(request: StepRequest = Body(...)):
         current_state = env.state()
         if current_state is None:
             raise HTTPException(status_code=400, detail="Environment not reset. Call /reset first.")
-        result_state, reward, done, info = env.step(request.dict())
-        return StepResponse(state=result_state, reward=reward, done=done, info=info)
+        # env.step now returns (state, reward, done)
+        obs, reward, done = env.step(request.dict())
+        return StepResponse(state=obs, reward=reward, done=done)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 

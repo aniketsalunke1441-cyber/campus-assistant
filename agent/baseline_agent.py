@@ -202,7 +202,7 @@ def _llm_policy(
             parameters=params,
         )
     except Exception as exc:
-        print(f"  [LLM] Parse error: {exc}. Falling back to rule-based.")
+        # print(f"  [LLM] Parse error: {exc}. Falling back to rule-based.")
         return _rule_based_policy(state_dict)
 
 
@@ -247,16 +247,16 @@ class BaselineAgent:
             api_key = os.getenv("API_KEY") or os.getenv("OPENAI_API_KEY")
             
             if api_key:
-                if self.verbose:
-                    print(f"[BaselineAgent] Initializing client | Base: {base_url} | Model: {self.model}")
+                # if self.verbose:
+                #     print(f"[BaselineAgent] Initializing client | Base: {base_url} | Model: {self.model}")
                 self._client = openai.OpenAI(
                     api_key=api_key,
                     base_url=base_url
                 )
 
-        if self.verbose:
-            mode = "LLM (GPT)" if self._use_llm else "Rule-Based (no API key)"
-            print(f"[BaselineAgent] Policy mode: {mode}")
+        # if self.verbose:
+        #     mode = "LLM (GPT)" if self._use_llm else "Rule-Based (no API key)"
+        #     print(f"[BaselineAgent] Policy mode: {mode}")
 
     # ------------------------------------------------------------------
 
@@ -312,7 +312,7 @@ class BaselineAgent:
                     f"Params: {action.parameters}"
                 )
 
-            result_obs, reward, done, info = env.step(action).to_tuple()
+            result_obs, reward, done = env.step(action)
 
             transcript.append(
                 {

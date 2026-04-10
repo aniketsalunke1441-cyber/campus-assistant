@@ -36,6 +36,16 @@ class CampusState(BaseModel):
     _required_steps: List[ActionType] = []
     _completed_list: List[ActionType] = []
 
+# ── Tasks ───────────────────────────────────────────────────────────────────
+
+class TaskInfo(BaseModel):
+    id: str
+    name: str
+    goal: str
+    description: str
+    difficulty: str
+    required_steps: List[ActionType]
+
 # ── API Responses ────────────────────────────────────────────────────────────
 
 class ResetResponse(BaseModel):
@@ -46,4 +56,7 @@ class StepResponse(BaseModel):
     state: CampusState
     reward: float
     done: bool
-    info: Dict[str, Any] = Field(default_factory=dict)
+
+    def to_tuple(self):
+        """Compatibility with Phase 1 code expecting a tuple."""
+        return (self.state, self.reward, self.done)
